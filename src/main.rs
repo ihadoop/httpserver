@@ -1,4 +1,4 @@
-use std::{io::{BufRead, BufReader}, net::{TcpListener, TcpStream}};
+use std::{io::{BufRead, BufReader, Write}, net::{TcpListener, TcpStream}};
 
 fn main(){
 
@@ -18,6 +18,15 @@ fn main(){
         .map(|result| result.unwrap())
         .take_while(|line| !line.is_empty())
         .collect();
+
+        // let response = "HTTP/1.1 200 OK\r\n\r\n";
+         
+
+            let contents = std::fs::read_to_string("hello.html").unwrap();
+            let length = contents.len();
+            let status_line = "HTTP/1.1 200 OK";
+            let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+            stream.write_all(response.as_bytes()).unwrap();
 
     println!("Request: {:#?}", http_request);
     }
