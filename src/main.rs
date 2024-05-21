@@ -1,15 +1,20 @@
 use std::{
     io::{BufRead, BufReader, Write},
     net::{TcpListener, TcpStream},
+    thread::{self, Thread},
 };
+use httpserver::ThreadPool;
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
 
+    let thread_pool = ThreadPool::new(10);
     for stream in listener.incoming() {
         let stream = stream.unwrap();
-        handle_connection(stream);
-        println!("Connection established!");
+        thread_pool.execute(|| {
+            handle_connection(stream);
+            println!("Connection established!");
+        });
     }
 
     fn handle_connection(mut stream: TcpStream) {
@@ -23,22 +28,15 @@ fn main() {
 
         let request_line = http_request.get(0).unwrap();
 
+        let (status_line, file_name) = match &request_line[..] {
+            "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "hello.html"),
+            _ => ("HTTP/1.1 404 NOT FOUND", "404.html"),
+        };
+        let contents = std::fs::read_to_string(file_name).unwrap();
+        let length = contents.len();
+        let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+        stream.write_all(response.as_bytes()).unwrap();
         // let response = "HTTP/1.1 200 OK\r\n\r\n";
-        if request_line == "GET / HTTP/1.1" {
-            let contents = std::fs::read_to_string("hello.html").unwrap();
-            let length = contents.len();
-            let status_line = "HTTP/1.1 200 OK";
-            let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
-            stream.write_all(response.as_bytes()).unwrap();
-        } else {
-            let status_line = "HTTP/1.1 404 NOT FOUND";
-            let contents = std::fs::read_to_string("404.html").unwrap();
-            let length = contents.len();
-
-            let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
-
-            stream.write_all(response.as_bytes()).unwrap();
-        }
 
         println!("Request: {:#?}", http_request);
     }
