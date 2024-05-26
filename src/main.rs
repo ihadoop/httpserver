@@ -1,10 +1,9 @@
+use httpserver::ThreadPool;
 use std::{
     io::{BufRead, BufReader, Write},
     net::{TcpListener, TcpStream},
     thread::{self, Thread},
 };
-use httpserver::ThreadPool;
-
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
